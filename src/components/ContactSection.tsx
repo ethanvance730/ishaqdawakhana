@@ -52,7 +52,7 @@ export function ContactSection() {
                     <span>اوقاتِ کار</span>
                   </div>
                   <p className="text-base font-semibold text-white">
-                    صبح ۹ بجے تا رات ۹ بجے
+                    صبح ۹ بجے تا شام ۶ بجے
                   </p>
                 </div>
               </div>
