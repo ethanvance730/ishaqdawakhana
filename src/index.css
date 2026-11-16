@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-urdu: 'Noto Nastaliq Urdu', serif;
+  }
+
+  html {
+    font-family: 'Noto Nastaliq Urdu', serif;
+    scroll-behavior: smooth;
+    background-color: #FBF8F1;
+    color: #132A20;
+  }
+
+  body,
+  button,
+  input,
+  textarea,
+  select {
+    font-family: 'Noto Nastaliq Urdu', serif;
+  }
+
+  body {
+    margin: 0;
+    background-color: #FBF8F1;
+    color: #132A20;
+    line-height: 2.05;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Subtle Islamic geometric lattice border accent */
+.islamic-lattice-bg {
+  background-color: #0E3B2C;
+  background-image: radial-gradient(rgba(201, 164, 92, 0.14) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

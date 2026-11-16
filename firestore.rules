@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 3 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email == 'ishaqstore405@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    function isCanonicalProductId(productId) {
+      return productId in [
+        'ikseer-saal-capsule',
+        'suranjan-capsule',
+        'mubahhi-capsule',
+        'habb-e-ambari',
+        'habb-e-shingrafi',
+        'habb-e-nuqra',
+        'majoon-moosli-zafrani',
+        'laooq-sapistan',
+        'ikseer-saal-syrup',
+        'gastonil-syrup'
+      ];
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['id', 'name', 'description', 'category', 'imageKey', 'featured', 'sortOrder'])
+        && data.keys().hasOnly(['id', 'name', 'description', 'category', 'imageKey', 'imageUrl', 'featured', 'sortOrder'])
+        && isValidId(data.id)
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 120
+        && data.description is string && data.description.size() >= 5 && data.description.size() <= 500
+        && data.category is string && data.category in ['کیپسول', 'گولیاں', 'معجون و لعوق', 'سیرپ']
+        && data.imageKey is string && data.imageKey in ['capsules', 'pills', 'majoon', 'syrup']
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000 && (data.imageUrl == '' || data.imageUrl.matches('^https://.*') || data.imageUrl.matches('^/src/assets/images/.*'))))
+        && data.featured is bool
+        && data.sortOrder is int && data.sortOrder >= 1 && data.sortOrder <= 100;
+    }
+
+    // Connection health check document
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+      allow list, write: if false;
+    }
+
+    // Public herbal medicines catalog (no PII)
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create: if isValidId(productId)
+        && isValidProduct(incoming())
+        && incoming().id == productId
+        && (
+          isAdmin()
+          || (
+            isCanonicalProductId(productId)
+            && !exists(/databases/$(database)/documents/products/$(productId))
+          )
+        );
+      allow update: if isAdmin()
+        && isValidId(productId)
+        && isValidProduct(incoming())
+        && incoming().id == existing().id
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'name',
+          'description',
+          'category',
+          'imageKey',
+          'imageUrl',
+          'featured',
+          'sortOrder'
+        ]);
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+  }
+}

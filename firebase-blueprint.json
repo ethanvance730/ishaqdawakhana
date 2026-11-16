@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Herbal medicine product listed on the Ishaq Dawakhana storefront.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique product identifier slug."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120,
+          "description": "Urdu display name of the herbal medicine."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500,
+          "description": "Urdu therapeutic description of the herbal medicine."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["کیپسول", "گولیاں", "معجون و لعوق", "سیرپ"],
+          "minLength": 2,
+          "maxLength": 40,
+          "description": "Urdu medicine category."
+        },
+        "imageKey": {
+          "type": "string",
+          "enum": ["capsules", "pills", "majoon", "syrup"],
+          "minLength": 3,
+          "maxLength": 20,
+          "description": "Visual format key mapping to the studio product photograph."
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Optional custom HTTPS image URL for an individual product."
+        },
+        "featured": {
+          "type": "boolean",
+          "description": "Whether the product appears in the featured home showcase."
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Display ordering index (1-100)."
+        }
+      },
+      "required": ["id", "name", "description", "category", "imageKey", "featured", "sortOrder"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Public herbal medicine catalog items stored in Firestore."
+    }
+  }
+}

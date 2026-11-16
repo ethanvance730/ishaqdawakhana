@@ -1,0 +1,6 @@
+{
+  "name": "اسحاق دواخانہ",
+  "description": "اسحاق دواخانہ — مین بازار، ڈونگہ بونگہ۔ خالص دیسی اور یونانی جڑی بوٹیوں کی مستند ادویات۔",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
