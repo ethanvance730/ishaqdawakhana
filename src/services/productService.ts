@@ -1,6 +1,8 @@
 import {
+  getRedirectResult,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from 'firebase/auth';
 import {
@@ -21,9 +23,18 @@ import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 
 const PRODUCTS_COLLECTION = 'products';
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export async function signInAdminWithGoogle() {
   return signInWithPopup(auth, googleProvider);
+}
+
+export async function signInAdminWithRedirect() {
+  return signInWithRedirect(auth, googleProvider);
+}
+
+export async function checkAdminRedirectResult() {
+  return getRedirectResult(auth);
 }
 
 export async function signOutAdmin() {

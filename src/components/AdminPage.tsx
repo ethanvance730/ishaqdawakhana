@@ -9,9 +9,11 @@ import {
 } from '../data/catalogSeed';
 import { auth } from '../firebase';
 import {
+  checkAdminRedirectResult,
   removeProduct,
   saveProduct,
   signInAdminWithGoogle,
+  signInAdminWithRedirect,
   signOutAdmin,
   verifyAdminAccess,
 } from '../services/productService';
@@ -35,6 +37,8 @@ export function AdminPage({ products, onBackHome }: AdminPageProps) {
   const [isAuthorizedAdmin, setIsAuthorizedAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -50,8 +54,65 @@ export function AdminPage({ products, onBackHome }: AdminPageProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  const mapAuthErrorToUrdu = (err: unknown): { message: string; code: string | null } => {
+    const code =
+      typeof err === 'object' && err !== null && 'code' in err
+        ? String((err as { code?: unknown }).code || '')
+        : '';
+
+    switch (code) {
+      case 'auth/popup-blocked':
+        return {
+          message:
+            'براؤزر نے لاگ ان ونڈو (پاپ اپ) روک دی ہے۔ براہِ کرم براؤزر میں پاپ اپ کی اجازت دیں یا نیچے متبادل لاگ ان بٹن استعمال کریں۔',
+          code,
+        };
+      case 'auth/popup-closed-by-user':
+        return {
+          message: 'لاگ ان ونڈو مکمل ہونے سے پہلے بند کر دی گئی۔ براہِ کرم دوبارہ کوشش کریں۔',
+          code,
+        };
+      case 'auth/cancelled-popup-request':
+        return {
+          message: 'لاگ ان کی پچھلی درخواست منسوخ ہو گئی۔ براہِ کرم ایک بار پھر کلک کریں۔',
+          code,
+        };
+      case 'auth/unauthorized-domain':
+        return {
+          message:
+            'یہ ڈومین Firebase Authentication میں مجاز نہیں ہے۔ براہِ کرم اس ایپ کو نئے ٹیب میں کھولیں یا Firebase Console کے Authorized Domains میں یہ ڈومین شامل کریں۔',
+          code,
+        };
+      case 'auth/operation-not-allowed':
+        return {
+          message:
+            'Firebase Console میں Google Sign-In فعال نہیں ہے۔ براہِ کرم Authentication -> Sign-in method میں جا کر Google کو فعال کریں۔',
+          code,
+        };
+      case 'auth/network-request-failed':
+        return {
+          message: 'نیٹ ورک کنکشن کا مسئلہ پیش آیا۔ انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔',
+          code,
+        };
+      default:
+        return {
+          message: 'گوگل لاگ ان مکمل نہیں ہو سکا۔ براہِ کرم دوبارہ کوشش کریں۔',
+          code: code || null,
+        };
+    }
+  };
+
   useEffect(() => {
     let active = true;
+
+    checkAdminRedirectResult().catch((err) => {
+      if (!active) return;
+      console.error('Redirect auth error:', err);
+      const mapped = mapAuthErrorToUrdu(err);
+      setAuthError(mapped.message);
+      setAuthErrorCode(mapped.code);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!active) return;
       setUser(firebaseUser);
@@ -100,15 +161,38 @@ export function AdminPage({ products, onBackHome }: AdminPageProps) {
 
   const handleSignIn = async () => {
     setAuthError(null);
+    setAuthErrorCode(null);
+    setSigningIn(true);
     try {
       await signInAdminWithGoogle();
-    } catch {
-      setAuthError('گوگل لاگ ان مکمل نہیں ہو سکا۔ براہِ کرم دوبارہ کوشش کریں۔');
+    } catch (err) {
+      console.error('Google Sign-In error:', err);
+      const mapped = mapAuthErrorToUrdu(err);
+      setAuthError(mapped.message);
+      setAuthErrorCode(mapped.code);
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
+  const handleRedirectSignIn = async () => {
+    setAuthError(null);
+    setAuthErrorCode(null);
+    setSigningIn(true);
+    try {
+      await signInAdminWithRedirect();
+    } catch (err) {
+      console.error('Google Redirect Sign-In error:', err);
+      const mapped = mapAuthErrorToUrdu(err);
+      setAuthError(mapped.message);
+      setAuthErrorCode(mapped.code);
+      setSigningIn(false);
     }
   };
 
   const handleSignOut = async () => {
     setAuthError(null);
+    setAuthErrorCode(null);
     await signOutAdmin();
   };
 
@@ -212,17 +296,36 @@ export function AdminPage({ products, onBackHome }: AdminPageProps) {
               ادویات شامل کرنے، ترمیم کرنے یا حذف کرنے کے لیے اپنے مجاز گوگل اکاؤنٹ سے لاگ ان کریں۔
             </p>
             {authError && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 mb-5">
-                {authError}
-              </p>
+              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3.5 mb-5 space-y-1.5">
+                <p>{authError}</p>
+                {authErrorCode && (
+                  <p dir="ltr" className="text-xs font-mono text-red-600">
+                    {authErrorCode}
+                  </p>
+                )}
+              </div>
             )}
-            <button
-              type="button"
-              onClick={handleSignIn}
-              className="w-full px-6 py-3.5 rounded-xl bg-[#0E3B2C] hover:bg-[#14533D] text-white text-base font-bold transition-colors cursor-pointer min-h-[48px]"
-            >
-              گوگل اکاؤنٹ سے لاگ ان کریں
-            </button>
+            <div className="space-y-3">
+              <button
+                type="button"
+                disabled={signingIn}
+                onClick={handleSignIn}
+                className="w-full px-6 py-3.5 rounded-xl bg-[#0E3B2C] hover:bg-[#14533D] disabled:opacity-60 text-white text-base font-bold transition-colors cursor-pointer min-h-[48px]"
+              >
+                {signingIn ? 'لاگ ان ہو رہا ہے...' : 'گوگل اکاؤنٹ سے لاگ ان کریں'}
+              </button>
+
+              {authErrorCode === 'auth/popup-blocked' && (
+                <button
+                  type="button"
+                  disabled={signingIn}
+                  onClick={handleRedirectSignIn}
+                  className="w-full px-6 py-3 rounded-xl border border-[#0E3B2C] text-[#0E3B2C] hover:bg-[#F3ECE0] text-sm font-bold transition-colors cursor-pointer min-h-[44px]"
+                >
+                  متبادل طریقے سے لاگ ان کریں
+                </button>
+              )}
+            </div>
           </div>
         )}
 
