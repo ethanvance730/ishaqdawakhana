@@ -54,6 +54,16 @@ export function AdminPage({ products, onBackHome }: AdminPageProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => {
+      meta.remove();
+    };
+  }, []);
+
   const mapAuthErrorToUrdu = (err: unknown): { message: string; code: string | null } => {
     const code =
       typeof err === 'object' && err !== null && 'code' in err
