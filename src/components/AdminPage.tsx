@@ -13,14 +13,13 @@ import {
   saveProduct,
   signInAdminWithGoogle,
   signOutAdmin,
+  verifyAdminAccess,
 } from '../services/productService';
 
 interface AdminPageProps {
   products: HerbalProduct[];
   onBackHome: () => void;
 }
-
-const ADMIN_EMAIL = 'ishaqstore405@gmail.com';
 
 const CATEGORIES: ProductCategory[] = ['کیپسول', 'گولیاں', 'معجون و لعوق', 'سیرپ'];
 
@@ -33,6 +32,7 @@ const IMAGE_OPTIONS: Array<{ value: ProductImageKey; label: string }> = [
 
 export function AdminPage({ products, onBackHome }: AdminPageProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthorizedAdmin, setIsAuthorizedAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -51,17 +51,26 @@ export function AdminPage({ products, onBackHome }: AdminPageProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    let active = true;
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!active) return;
       setUser(firebaseUser);
+      if (!firebaseUser) {
+        setIsAuthorizedAdmin(false);
+        setAuthLoading(false);
+        return;
+      }
+      setAuthLoading(true);
+      const allowed = await verifyAdminAccess(firebaseUser.uid);
+      if (!active) return;
+      setIsAuthorizedAdmin(allowed);
       setAuthLoading(false);
     });
-    return () => unsubscribe();
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
-
-  const isAuthorizedAdmin =
-    Boolean(user) &&
-    user?.email === ADMIN_EMAIL &&
-    user?.emailVerified === true;
 
   const resetForm = () => {
     setEditingId(null);

@@ -53,6 +53,26 @@
         }
       },
       "required": ["id", "name", "description", "category", "imageKey", "featured", "sortOrder"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Server-verified administrator access record.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Authentication user UID."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"],
+          "description": "Administrator role identifier."
+        }
+      },
+      "required": ["uid", "role"]
     }
   },
   "firestore": {
@@ -61,6 +81,12 @@
         "$ref": "#/entities/Product"
       },
       "description": "Public herbal medicine catalog items stored in Firestore."
+    },
+    "/admins/{uid}": {
+      "schema": {
+        "$ref": "#/entities/AdminRecord"
+      },
+      "description": "Server-side admin verification records."
     }
   }
 }

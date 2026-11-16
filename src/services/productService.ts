@@ -7,6 +7,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocFromServer,
   getDocs,
   onSnapshot,
   orderBy,
@@ -27,6 +28,15 @@ export async function signInAdminWithGoogle() {
 
 export async function signOutAdmin() {
   return signOut(auth);
+}
+
+export async function verifyAdminAccess(uid: string): Promise<boolean> {
+  try {
+    await getDocFromServer(doc(db, 'admins', uid));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function saveProduct(product: HerbalProduct, isNew: boolean): Promise<void> {
